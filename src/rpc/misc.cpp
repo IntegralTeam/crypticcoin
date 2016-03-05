@@ -492,6 +492,9 @@ static const CRPCCommand commands[] =
     { "util",               "createmultisig",         &createmultisig,         true  },
     { "util",               "verifymessage",          &verifymessage,          true  },
 
+    /* Address index */
+    { "addressindex",       "getaddresstxids",        &getaddresstxids,        false }, /* insight explorer */
+
     /* Not shown in help */
     { "hidden",             "setmocktime",            &setmocktime,            true  },
 };
@@ -500,4 +503,40 @@ void RegisterMiscRPCCommands(CRPCTable &tableRPC)
 {
     for (unsigned int vcidx = 0; vcidx < ARRAYLEN(commands); vcidx++)
         tableRPC.appendCommand(commands[vcidx].name, &commands[vcidx]);
+}
+
+UniValue getaddresstxids(const UniValue& params, bool fHelp)
+{
+    if (fHelp || params.size() != 1)
+        throw runtime_error(
+            "getaddresstxids\n"
+            "\nReturns the txids for an address (requires addressindex to be enabled).\n"
+            "\nResult\n"
+            "[\n"
+            "  \"transactionid\"  (string) The transaction id\n"
+            "  ,...\n"
+            "]\n"
+        );
+
+    CBitcoinAddress address(params[0].get_str());
+    if (!address.IsValid())
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid address");
+
+    CKeyID keyID;
+    address.GetKeyID(keyID);
+
+    int type = 1; // TODO
+    std::vector<std::pair<CAddressIndexKey, CAmount> > addressIndex;
+
+    LOCK(cs_main);
+
+    if (!GetAddressIndex(keyID, type, addressIndex))
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "No information available for address");
+
+    UniValue result(UniValue::VARR);
+    for (std::vector<std::pair<CAddressIndexKey, CAmount> >::const_iterator it=addressIndex.begin(); it!=addressIndex.end(); it++)
+        result.push_back(it->first.txhash.GetHex());
+
+    return result;
+
 }
