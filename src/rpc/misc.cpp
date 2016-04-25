@@ -498,9 +498,9 @@ static const CRPCCommand commands[] =
     { "addressindex",       "getaddressbalance",      &getaddressbalance,      false }, /* insight explorer */
     { "addressindex",       "getaddressdeltas",       &getaddressdeltas,       false }, /* insight explorer */
     { "addressindex",       "getaddressutxos",        &getaddressutxos,        false }, /* insight explorer */
-    { "addressindex",       "getaddressmempool",      &getaddressmempool,      false }, /* insight explorer */
+    { "addressindex",       "getaddressmempool",      &getaddressmempool,      true  }, /* insight explorer */
 
-    { "blockchain",         "getspentinfo",           &getspentinfo,           true  }, /* insight explorer */
+    { "blockchain",         "getspentinfo",           &getspentinfo,           false }, /* insight explorer */
 
     /* Not shown in help */
     { "hidden",             "setmocktime",            &setmocktime,            true  },
