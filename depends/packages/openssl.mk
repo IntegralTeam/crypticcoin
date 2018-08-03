@@ -5,7 +5,7 @@ $(package)_download_path=https://www.openssl.org/source
 $(package)_file_name=$(package)-$($(package)_version).tar.gz
 
 define $(package)_set_vars
-  $(package)_config_opts=--prefix=$(host_prefix) --openssldir=$(host_prefix)/etc/openssl
+  $(package)_config_opts=--prefix=$(host_prefix) --openssldir=$(host_prefix)
   $(package)_config_env=AR="$($(package)_ar)" RANLIB="$($(package)_ranlib)" CC="$($(package)_cc)"
   $(package)_config_opts+=no-shared
   $(package)_config_opts+=no-unit-test
@@ -25,8 +25,8 @@ define $(package)_set_vars
 endef
 
 define $(package)_preprocess_cmds
-  sed -i.old "/define DATE/d" util/mkbuildinf.pl && \
-  sed -i.old "s|\"engines\", \"apps\", \"test\"|\"engines\"|" Configure
+  #sed -i.old "/define DATE/d" util/mkbuildinf.pl && \
+  #sed -i.old "s|\"engines\", \"apps\", \"test\"|\"engines\"|" Configure
 endef
 
 define $(package)_config_cmds
@@ -34,7 +34,7 @@ define $(package)_config_cmds
 endef
 
 define $(package)_build_cmds
-  $(MAKE) -j1 build_libs libcrypto.pc libssl.pc openssl.pc
+  $(MAKE) #-j1 build_libs libcrypto.pc libssl.pc openssl.pc
 endef
 
 define $(package)_stage_cmds
@@ -42,5 +42,5 @@ define $(package)_stage_cmds
 endef
 
 define $(package)_postprocess_cmds
-  rm -rf share bin etc
+  #rm -rf share bin etc
 endef

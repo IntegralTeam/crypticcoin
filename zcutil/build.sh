@@ -15,8 +15,8 @@ function gprefix() {
     cmd_pref "$1" "g$2" "$2"
 }
 
-gprefix READLINK readlink
-cd "$(dirname "$("$READLINK" -f "$0")")/.."
+#gprefix READLINK readlink
+#cd "$(dirname "$("$READLINK" -f "$0")")/.."
 
 # Allow user overrides to $MAKE. Typical usage for users who need it:
 #   MAKE=gmake ./zcutil/build.sh -j$(nproc)

@@ -7,7 +7,7 @@ $(package)_version=0.3.3.9
 $(package)_sha256_hash=d98991212edfda5b9ce46f7c8a92eecee06de3a8d48b702601bceb6f24610adb
 $(package)_file_name=$(package)-$($(package)_version).tar.gz
 $(package)_download_path=https://github.com/torproject/tor/archive
-$(package)_dependencies=libseccomp libcap libevent zlib openssl
+$(package)_dependencies=libevent zlib openssl
 
 define $(package)_set_vars
   $(package)_config_opts += --disable-unittests
@@ -15,7 +15,7 @@ define $(package)_set_vars
   $(package)_config_opts += --disable-systemd
   $(package)_config_opts += --disable-lzma
   $(package)_config_opts += --disable-asciidoc
-  $(package)_config_opts += --enable-static-tor
+  #$(package)_config_opts += --enable-static-tor
   $(package)_config_opts += --prefix=$(host_prefix)
   $(package)_config_opts += --with-libevent-dir=$(host_prefix)
   $(package)_config_opts += --with-openssl-dir=$(host_prefix)

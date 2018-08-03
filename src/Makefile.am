@@ -464,8 +464,6 @@ crypticcoind_LDADD += \
   $(TOR_PREFIX)/lib/libkeccak-tiny.a \
   $(TOR_PREFIX)/lib/libcrypto.a \
   $(TOR_PREFIX)/lib/libssl.a \
-  $(TOR_PREFIX)/lib/libcap.a \
-  $(TOR_PREFIX)/lib/libseccomp.a \
   $(TOR_PREFIX)/lib/libz.a \
   $(EVENT_PTHREADS_LIBS) \
   $(EVENT_LIBS) \
@@ -617,6 +615,6 @@ endif
 	$(AM_V_GEN) $(PROTOC) --cpp_out=$(@D) --proto_path=$(abspath $(<D) $<)
 
 if ENABLE_TESTS
-include Makefile.test.include
-include Makefile.gtest.include
+#include Makefile.test.include
+#include Makefile.gtest.include
 endif

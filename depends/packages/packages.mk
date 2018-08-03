@@ -27,7 +27,7 @@ rust_crates := \
 rust_packages := rust $(rust_crates) librustzcash
 proton_packages := proton
 crypticcoin_packages := libgmp libsodium
-tor_packages := openssl libevent libcap libseccomp zlib
+tor_packages := openssl libevent zlib
 packages := boost zeromq $(tor_packages) tor $(crypticcoin_packages) googletest
 native_packages := native_ccache
 
