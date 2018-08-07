@@ -340,13 +340,13 @@ bool CBlockTreeDB::UpdateAddressUnspentIndex(const std::vector<std::pair<CAddres
 bool CBlockTreeDB::ReadAddressUnspentIndex(uint160 addressHash, int type,
                                            std::vector<std::pair<CAddressUnspentKey, CAddressUnspentValue> > &unspentOutputs) {
     boost::scoped_ptr<CDBIterator> pcursor(NewIterator());
-    pcursor->Seek(make_pair(DB_ADDRESSUNSPENTINDEX, CAddressUnspentKey()));
+    pcursor->Seek(make_pair(DB_ADDRESSUNSPENTINDEX, CAddressIndexIteratorKey(type, addressHash)));
 
     while (pcursor->Valid()) {
         boost::this_thread::interruption_point();
         std::pair<char, CAddressUnspentKey> key;
         CAddressUnspentValue nValue;
-        if (pcursor->GetKey(key) && key.first == DB_ADDRESSUNSPENTINDEX) {
+        if (pcursor->GetKey(key) && key.first == DB_ADDRESSUNSPENTINDEX && key.second.hashBytes == addressHash) {
             if (pcursor->GetValue(nValue)) {
                 unspentOutputs.emplace_back(key.second, nValue);
             } else {
@@ -381,13 +381,17 @@ bool CBlockTreeDB::ReadAddressIndex(uint160 addressHash, int type,
                                     std::vector<std::pair<CAddressIndexKey, CAmount> > &addressIndex,
                                     int start, int end) {
     boost::scoped_ptr<CDBIterator> pcursor(NewIterator());
-    pcursor->Seek(make_pair(DB_ADDRESSINDEX, CAddressIndexKey()));
+    if (start > 0 && end > 0) {
+        pcursor->Seek(make_pair(DB_ADDRESSINDEX, CAddressIndexIteratorHeightKey(type, addressHash, start)));
+    } else {
+        pcursor->Seek(make_pair(DB_ADDRESSINDEX, CAddressIndexIteratorKey(type, addressHash)));
+    }
 
     while (pcursor->Valid()) {
         boost::this_thread::interruption_point();
         std::pair<char, CAddressIndexKey> key;
         CAmount nValue;
-        if (pcursor->GetKey(key) && key.first == DB_ADDRESSINDEX) {
+        if (pcursor->GetKey(key) && key.first == DB_ADDRESSINDEX && key.second.hashBytes == addressHash) {
             if (pcursor->GetValue(nValue)) {
                 addressIndex.emplace_back(key.second, nValue);
             } else {
@@ -421,7 +425,7 @@ bool CBlockTreeDB::blockOnchainActive(const uint256& hash)
 
 bool CBlockTreeDB::ReadTimestampIndex(const unsigned int &high, const unsigned int &low, const bool fActiveOnly, std::vector<std::pair<uint256, unsigned int> > &hashes) {
     boost::scoped_ptr<CDBIterator> pcursor(NewIterator());
-    pcursor->Seek(make_pair(DB_TIMESTAMPINDEX, CTimestampIndexKey()));
+    pcursor->Seek(make_pair(DB_TIMESTAMPINDEX, CTimestampIndexIteratorKey(low)));
 
     while (pcursor->Valid()) {
         boost::this_thread::interruption_point();
