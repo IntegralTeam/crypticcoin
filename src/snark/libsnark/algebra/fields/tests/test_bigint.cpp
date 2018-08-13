@@ -27,11 +27,11 @@ TEST(algebra, bigint)
     bigint<1> b1 = bigint<1>(b1_decimal);
     bigint<2> b2 = bigint<2>(b2_decimal);
 
-    EXPECT_EQ(b0.as_ulong(), UINT64_C(0));
+    EXPECT_EQ(b0.as_uint64(), UINT64_C(0));
     EXPECT_TRUE(b0.is_zero());
-    EXPECT_EQ(b1.as_ulong(), UINT64_C(76749407));
+    EXPECT_EQ(b1.as_uint64(), UINT64_C(76749407));
     EXPECT_FALSE(b1.is_zero());
-    EXPECT_EQ(b2.as_ulong(), UINT64_C(15747124762497195938));
+    EXPECT_EQ(b2.as_uint64(), UINT64_C(15747124762497195938));
     EXPECT_FALSE(b2.is_zero());
     EXPECT_NE(b0, b1);
     EXPECT_FALSE(b0 == b1);
@@ -62,7 +62,7 @@ TEST(algebra, bigint)
     bigint<2> remainder;
     bigint<3>::div_qr(quotient, remainder, b3, b2);
     EXPECT_LT(quotient.num_bits(), GMP_NUMB_BITS);
-    EXPECT_EQ(quotient.as_ulong(), b1.as_ulong());
+    EXPECT_EQ(quotient.as_uint64(), b1.as_uint64());
     bigint<1> b1inc = bigint<1>("76749408");
     bigint<1> b1a = quotient.shorten(b1inc, "test");
     EXPECT_EQ(b1a, b1);
@@ -80,9 +80,9 @@ TEST(algebra, bigint)
 
     bigint<3>::div_qr(quotient, remainder, b3, b2);
     EXPECT_LT(quotient.num_bits(), GMP_NUMB_BITS);
-    EXPECT_EQ(quotient.as_ulong(), b1.as_ulong());
+    EXPECT_EQ(quotient.as_uint64(), b1.as_uint64());
     EXPECT_LT(remainder.num_bits(), GMP_NUMB_BITS);
-    EXPECT_EQ(remainder.as_ulong(), 42);
+    EXPECT_EQ(remainder.as_uint64(), 42);
 
     b3a.clear();
     EXPECT_TRUE(b3a.is_zero());

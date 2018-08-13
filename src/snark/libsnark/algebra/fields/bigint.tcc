@@ -131,7 +131,7 @@ size_t bigint<n>::num_bits() const
 }
 
 template<mp_size_t n>
-uint64_t bigint<n>::as_ulong() const
+uint64_t bigint<n>::as_uint64() const
 {
     return this->data[0];
 }
