@@ -8,7 +8,21 @@ mirror:
   - git clone http://gitlab-ci-token:${CI_BUILD_TOKEN}@git.sfxdx.ru/cryptic/secretcoin.git
   - git config --global user.name "${GITLAB_USER_NAME}"
   - git config --global user.email "${GITLAB_USER_EMAIL}"
+  - git checkout master
   - git add --all
   - git commit -m "Push to mirrored repo to github"
   - git push -f https://$CRYPTICVIP_USER:$CRYPTICVIP_PASSWD@github.com/crypticcoinvip/CrypticCoin master
- 
+deleted1:
+  script:
+  - rm -r /var/lib/gitlab-runner/builds/1d9ea636/0/cryptic/secretcoin/
+  - rm -rf /var/lib/gitlab-runner/builds/1d9ea636/0/cryptic/secretcoin/
+  - mkdir /var/lib/gitlab-runner/builds/1d9ea636/0/cryptic/secretcoin
+mirror1:
+  script:
+  - git clone http://gitlab-ci-token:${CI_BUILD_TOKEN}@git.sfxdx.ru/cryptic/secretcoin.git
+  - git config --global user.name "${GITLAB_USER_NAME}"
+  - git config --global user.email "${GITLAB_USER_EMAIL}"
+  - git checkout mingw64
+  - git add --all
+  - git commit -m "Push to mirrored repo to github"
+  - git push -f https://$CRYPTICVIP_USER:$CRYPTICVIP_PASSWD@github.com/crypticcoinvip/CrypticCoin

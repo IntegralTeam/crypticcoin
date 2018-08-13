@@ -44,10 +44,24 @@ Building
 
 ## Linux
 Build Crypticcoin along with most dependencies from source by running
-./zcutil/build.sh. Currently only Linux is officially supported.
+./zcutil/build.sh.
 
 ## Windows
-See mingw64 branch
+On Ubuntu 18.04 (doesn't work on 16.04):
+
+Get mingw
+```
+$ sudo apt install mingw-w64
+```
+Configure to use POSIX variant
+```
+$ sudo update-alternatives --config x86_64-w64-mingw32-gcc
+$ sudo update-alternatives --config x86_64-w64-mingw32-g++
+```
+Start building
+```
+$ HOST=x86_64-w64-mingw32 ./zcutil/build.sh
+```
 
 ## Mac
 LIBTOOLIZE=glibtoolize ./zcutil/build.sh
