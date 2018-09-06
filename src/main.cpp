@@ -2357,27 +2357,6 @@ bool DisconnectBlock(CBlock& block, CValidationState& state, CBlockIndex* pindex
                 const CTxInUndo &undo = txundo.vprevout[j];
                 if (!ApplyTxInUndo(undo, view, out))
                     fClean = false;
-            }
-        }
-    }
-
-    // set the old best Sprout anchor back
-    view.PopAnchor(blockUndo.old_sprout_tree_root, SPROUT);
-
-    // set the old best Sapling anchor back
-    // We can get this from the `hashFinalSaplingRoot` of the last block
-    // However, this is only reliable if the last block was on or after
-    // the Sapling activation height. Otherwise, the last anchor was the
-    // empty root.
-    if (NetworkUpgradeActive(pindex->pprev->nHeight, Params().GetConsensus(), Consensus::UPGRADE_SAPLING)) {
-        view.PopAnchor(pindex->pprev->hashFinalSaplingRoot, SAPLING);
-    } else {
-        view.PopAnchor(SaplingMerkleTree::empty_root(), SAPLING);
-    }
-
-    // undo address indexes
-    if (fAddressIndex) {
-        std::vector<std::pair<CAddressIndexKey, CAmount> > addressIndex;
 
                 const CTxIn input = tx.vin[j];
 
@@ -2411,14 +2390,23 @@ bool DisconnectBlock(CBlock& block, CValidationState& state, CBlockIndex* pindex
                         continue;
                     }
                 }
-
             }
         }
     }
 
-    // set the old best anchor back
-    view.PopAnchor(blockUndo.old_tree_root);
+    // set the old best Sprout anchor back
+    view.PopAnchor(blockUndo.old_sprout_tree_root, SPROUT);
 
+    // set the old best Sapling anchor back
+    // We can get this from the `hashFinalSaplingRoot` of the last block
+    // However, this is only reliable if the last block was on or after
+    // the Sapling activation height. Otherwise, the last anchor was the
+    // empty root.
+    if (NetworkUpgradeActive(pindex->pprev->nHeight, Params().GetConsensus(), Consensus::UPGRADE_SAPLING)) {
+        view.PopAnchor(pindex->pprev->hashFinalSaplingRoot, SAPLING);
+    } else {
+        view.PopAnchor(SaplingMerkleTree::empty_root(), SAPLING);
+    }
 
     // move best block pointer to prevout block
     view.SetBestBlock(pindex->pprev->GetBlockHash());
