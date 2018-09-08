@@ -2,6 +2,8 @@
 #include <string>
 
 // Include local headers
+#include "chainparams.h"
+#include "key_io.h"
 #include "wallet/walletdb.h"
 #include "util.h"
 #include "base58.h"
@@ -65,7 +67,7 @@ std::string WalletUtilityDB::getAddress(CDataStream ssKey)
     CPubKey vchPubKey;
     ssKey >> vchPubKey;
     CKeyID id = vchPubKey.GetID();
-    std::string strAddr = CBitcoinAddress(id).ToString();
+    std::string strAddr = EncodeDestination(id);
 
     return strAddr;
 }
@@ -84,7 +86,7 @@ std::string WalletUtilityDB::getKey(CDataStream ssKey, CDataStream ssValue)
 
     ssValue >> pkey;
     if (key.Load(pkey, vchPubKey, true))
-        strKey = CBitcoinSecret(key).ToString();
+        strKey = EncodeSecret(key);
 
     return strKey;
 }
@@ -157,7 +159,7 @@ std::string WalletUtilityDB::getCryptedKey(CDataStream ssKey, CDataStream ssValu
     if(!DecryptKey(vKey, vchPubKey, key))
         return "";
 
-    std::string strKey = CBitcoinSecret(key).ToString();
+    std::string strKey = EncodeSecret(key);
     return strKey;
 }
 
