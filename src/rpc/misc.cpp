@@ -484,53 +484,45 @@ UniValue setmocktime(const UniValue& params, bool fHelp)
     return NullUniValue;
 }
 
-static const CRPCCommand commands[] =
-{ //  category              name                      actor (function)         okSafeMode
-  //  --------------------- ------------------------  -----------------------  ----------
-    { "control",            "getinfo",                &getinfo,                true  }, /* uses wallet if enabled */
-    { "util",               "validateaddress",        &validateaddress,        true  }, /* uses wallet if enabled */
-    { "util",               "z_validateaddress",      &z_validateaddress,      true  }, /* uses wallet if enabled */
-    { "util",               "createmultisig",         &createmultisig,         true  },
-    { "util",               "verifymessage",          &verifymessage,          true  },
-
-    /* Address index */
-    { "addressindex",       "getaddresstxids",        &getaddresstxids,        false }, /* insight explorer */
-    { "addressindex",       "getaddressbalance",      &getaddressbalance,      false }, /* insight explorer */
-    { "addressindex",       "getaddressdeltas",       &getaddressdeltas,       false }, /* insight explorer */
-    { "addressindex",       "getaddressutxos",        &getaddressutxos,        false }, /* insight explorer */
-    { "addressindex",       "getaddressmempool",      &getaddressmempool,      true  }, /* insight explorer */
-
-    { "blockchain",         "getspentinfo",           &getspentinfo,           false }, /* insight explorer */
-
-    /* Not shown in help */
-    { "hidden",             "setmocktime",            &setmocktime,            true  },
-};
-
-void RegisterMiscRPCCommands(CRPCTable &tableRPC)
-{
-    for (unsigned int vcidx = 0; vcidx < ARRAYLEN(commands); vcidx++)
-        tableRPC.appendCommand(commands[vcidx].name, &commands[vcidx]);
-}
-
 bool getAddressFromIndex(const int &type, const uint160 &hash, std::string &address)
 {
     if (type == 2) {
-        address = CBitcoinAddress(CScriptID(hash)).ToString();
+        address = EncodeDestination(CScriptID(hash));
     } else if (type == 1) {
-        address = CBitcoinAddress(CKeyID(hash)).ToString();
+        address = EncodeDestination(CKeyID(hash));
     } else {
         return false;
     }
     return true;
 }
 
+// This function accepts an address and returns in the output parameters
+// the version and raw bytes for the RIPEMD-160 hash.
+bool getIndexKey(const CTxDestination& dest, uint160& hashBytes, int& type)
+{
+    if (!IsValidDestination(dest)) {
+        return false;
+    } else if (dest.type() == typeid(CKeyID)) {
+        auto x = boost::get<CKeyID>(&dest);
+        memcpy(&hashBytes, x->begin(), 20);
+        type = 1;
+        return true;
+    } else if (dest.type() == typeid(CScriptID)) {
+        auto x = boost::get<CScriptID>(&dest);
+        memcpy(&hashBytes, x->begin(), 20);
+        type = 2;
+        return true;
+    }
+    return false;
+}
+
 bool getAddressesFromParams(const UniValue& params, std::vector<std::pair<uint160, int> > &addresses)
 {
     if (params[0].isStr()) {
-        CBitcoinAddress address(params[0].get_str());
+        CTxDestination address = DecodeDestination(params[0].get_str());
         uint160 hashBytes;
         int type = 0;
-        if (!address.GetIndexKey(hashBytes, type)) {
+        if (!getIndexKey(address, hashBytes, type)) {
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid address");
         }
         addresses.push_back(std::make_pair(hashBytes, type));
@@ -545,10 +537,10 @@ bool getAddressesFromParams(const UniValue& params, std::vector<std::pair<uint16
 
         for (std::vector<UniValue>::iterator it = values.begin(); it != values.end(); ++it) {
 
-            CBitcoinAddress address(it->get_str());
+            CTxDestination address = DecodeDestination(it->get_str());
             uint160 hashBytes;
             int type = 0;
-            if (!address.GetIndexKey(hashBytes, type)) {
+            if (!getIndexKey(address, hashBytes, type)) {
                 throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid address");
             }
             addresses.push_back(std::make_pair(hashBytes, type));
@@ -1037,4 +1029,33 @@ UniValue getspentinfo(const UniValue& params, bool fHelp)
     obj.push_back(Pair("height", value.blockHeight));
 
     return obj;
+}
+
+
+static const CRPCCommand commands[] =
+{ //  category              name                      actor (function)         okSafeMode
+  //  --------------------- ------------------------  -----------------------  ----------
+    { "control",            "getinfo",                &getinfo,                true  }, /* uses wallet if enabled */
+    { "util",               "validateaddress",        &validateaddress,        true  }, /* uses wallet if enabled */
+    { "util",               "z_validateaddress",      &z_validateaddress,      true  }, /* uses wallet if enabled */
+    { "util",               "createmultisig",         &createmultisig,         true  },
+    { "util",               "verifymessage",          &verifymessage,          true  },
+
+    /* Address index */
+    { "addressindex",       "getaddresstxids",        &getaddresstxids,        false }, /* insight explorer */
+    { "addressindex",       "getaddressbalance",      &getaddressbalance,      false }, /* insight explorer */
+    { "addressindex",       "getaddressdeltas",       &getaddressdeltas,       false }, /* insight explorer */
+    { "addressindex",       "getaddressutxos",        &getaddressutxos,        false }, /* insight explorer */
+    { "addressindex",       "getaddressmempool",      &getaddressmempool,      true  }, /* insight explorer */
+
+    { "blockchain",         "getspentinfo",           &getspentinfo,           false }, /* insight explorer */
+
+    /* Not shown in help */
+    { "hidden",             "setmocktime",            &setmocktime,            true  },
+};
+
+void RegisterMiscRPCCommands(CRPCTable &tableRPC)
+{
+    for (unsigned int vcidx = 0; vcidx < ARRAYLEN(commands); vcidx++)
+        tableRPC.appendCommand(commands[vcidx].name, &commands[vcidx]);
 }
