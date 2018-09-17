@@ -150,7 +150,6 @@ UniValue TxShieldedOutputsToJSON(const CTransaction& tx) {
 void TxToJSONExpanded(const CTransaction& tx, const uint256 hashBlock, UniValue& entry,
                       int nHeight = 0, int nConfirmations = 0, int nBlockTime = 0)
 {
-
     uint256 txid = tx.GetHash();
     entry.push_back(Pair("txid", txid.GetHex()));
     entry.push_back(Pair("overwintered", tx.fOverwintered));
