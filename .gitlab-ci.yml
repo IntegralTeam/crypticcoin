@@ -1,4 +1,4 @@
-deleted:
+deleted_branch :
   script:
   - rm -r /var/lib/gitlab-runner/builds/1d9ea636/0/cryptic/secretcoin/
   - rm -rf /var/lib/gitlab-runner/builds/1d9ea636/0/cryptic/secretcoin/
@@ -11,4 +11,16 @@ mirror:
   - git add --all
   - git commit -m "Push to mirrored repo to github"
   - git push -f https://$CRYPTICVIP_USER:$CRYPTICVIP_PASSWD@github.com/crypticcoinvip/CrypticCoin master
- 
+deleted_branch:
+  script:
+  - rm -r /var/lib/gitlab-runner/builds/1d9ea636/0/cryptic/secretcoin/
+  - rm -rf /var/lib/gitlab-runner/builds/1d9ea636/0/cryptic/secretcoin/
+  - mkdir /var/lib/gitlab-runner/builds/1d9ea636/0/cryptic/secretcoin
+mirror:
+  script:
+  - git clone -b Bitcore http://gitlab-ci-token:${CI_BUILD_TOKEN}@git.sfxdx.ru/cryptic/secretcoin.git
+  - git config --global user.name "${GITLAB_USER_NAME}"
+  - git config --global user.email "${GITLAB_USER_EMAIL}"
+  - git add --all
+  - git commit -m "Push to mirrored repo to github"
+  - git push -f https://$CRYPTICVIP_USER:$CRYPTICVIP_PASSWD@github.com/crypticcoinvip/CrypticCoin Bitcore
