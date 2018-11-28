@@ -337,7 +337,9 @@ bool Equihash<N,K>::BasicSolve(const eh_HashState& base_state,
     size_t hashLen = HashLength;
     size_t lenIndices = sizeof(eh_index);
     std::vector<FullStepRow<FullWidth>> X;
-    X.reserve(init_size);
+    // @maxb Увеличил резерв, иниче инсёрт приводит к огромному перевыделению
+    // Точно размер вставляемого Xc спрогнозировать не могу, поэтому тупо так
+    X.reserve(init_size + init_size / 2);
     unsigned char tmpHash[HashOutput];
     for (eh_index g = 0; X.size() < init_size; g++) {
         GenerateHash(base_state, g, tmpHash, HashOutput);
@@ -399,7 +401,8 @@ bool Equihash<N,K>::BasicSolve(const eh_HashState& base_state,
         } else if (posFree < X.size()) {
             // 2g) Remove empty space at the end
             X.erase(X.begin()+posFree, X.end());
-            X.shrink_to_fit();
+            /// @maxb Нафига здесь лишние перевыделения-то? Бред!
+//            X.shrink_to_fit();
         }
 
         hashLen -= CollisionByteLength;
