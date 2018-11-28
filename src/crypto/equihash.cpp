@@ -337,7 +337,8 @@ bool Equihash<N,K>::BasicSolve(const eh_HashState& base_state,
     size_t hashLen = HashLength;
     size_t lenIndices = sizeof(eh_index);
     std::vector<FullStepRow<FullWidth>> X;
-    X.reserve(init_size);
+    // @maxb Increased reserved buffer to optimize reallocation
+    X.reserve(init_size + init_size / 2);
     unsigned char tmpHash[HashOutput];
     for (eh_index g = 0; X.size() < init_size; g++) {
         GenerateHash(base_state, g, tmpHash, HashOutput);
@@ -399,7 +400,8 @@ bool Equihash<N,K>::BasicSolve(const eh_HashState& base_state,
         } else if (posFree < X.size()) {
             // 2g) Remove empty space at the end
             X.erase(X.begin()+posFree, X.end());
-            X.shrink_to_fit();
+            /// @maxb We don't really need reallocations here for performance
+//            X.shrink_to_fit();
         }
 
         hashLen -= CollisionByteLength;
