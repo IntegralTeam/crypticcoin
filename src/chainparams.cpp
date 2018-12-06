@@ -105,9 +105,9 @@ public:
         consensus.vUpgrades[Consensus::UPGRADE_TESTDUMMY].nActivationHeight =
             Consensus::NetworkUpgrade::NO_ACTIVATION_HEIGHT;
         consensus.vUpgrades[Consensus::UPGRADE_OVERWINTER].nProtocolVersion = 170005;
-        consensus.vUpgrades[Consensus::UPGRADE_OVERWINTER].nActivationHeight = 347500;
+        consensus.vUpgrades[Consensus::UPGRADE_OVERWINTER].nActivationHeight = 2; //347500;
         consensus.vUpgrades[Consensus::UPGRADE_SAPLING].nProtocolVersion = 170007;
-        consensus.vUpgrades[Consensus::UPGRADE_SAPLING].nActivationHeight = 100000;
+        consensus.vUpgrades[Consensus::UPGRADE_SAPLING].nActivationHeight = 4; //100000; // @maxb BTW, why it is less than overwinter??
 
         // The best chain should have at least this much work.
         consensus.nMinimumChainWork = uint256S("0x00000000000000000000000000000000000000000000000000281b32ff3198a1");
@@ -164,25 +164,29 @@ public:
 
         vFixedSeeds = std::vector<SeedSpec6>(pnSeed6_main, pnSeed6_main + ARRAYLEN(pnSeed6_main));
 
-        fMiningRequiresPeers = true;
+        fMiningRequiresPeers = false;
         fDefaultConsistencyChecks = false;
         fRequireStandard = true;
-        fMineBlocksOnDemand = false;
+        fMineBlocksOnDemand = true;
         fTestnetToBeDeprecatedFieldRPC = false;
 
         checkpointData = (CCheckpointData) {
             boost::assign::map_list_of
-            (0, consensus.hashGenesisBlock)
-            (1, uint256S("0x0006af774e069a29f346889a52c737f9b054de1649801241b3ec60e84484ecde"))
-            (2590, uint256S("0x000517e541aa6743b39fead56b3254bef4f8119b5cdb249c24e0146f188365eb"))
-            (10000, uint256S("0x0000264991d920934cf2d70303c99e203fc00e8a271658a3e6bac68ca922124c"))
-            (25000, uint256S("0x0000000977377c91961efa4da9c23688de3172493ba31513b1e1e0aeff122822"))
-            (44585, uint256S("0x00000007ddd54c42f44d7b236811793743647e677042a6b332a6c4fb0c6198c5")),
-            1541482774,     // * UNIX timestamp of last checkpoint block
-            115266,  // * total number of transactions between genesis and last checkpoint
-                   //   (the tx=... number in the SetBestChain debug.log lines)
-            1.0    // * estimated number of transactions per day after checkpoint
-                   //   total number of tx / (checkpoint block height / (24 * 24))
+//            (0, consensus.hashGenesisBlock)
+//            (1, uint256S("0x0006af774e069a29f346889a52c737f9b054de1649801241b3ec60e84484ecde"))
+//            (2590, uint256S("0x000517e541aa6743b39fead56b3254bef4f8119b5cdb249c24e0146f188365eb"))
+//            (10000, uint256S("0x0000264991d920934cf2d70303c99e203fc00e8a271658a3e6bac68ca922124c"))
+//            (25000, uint256S("0x0000000977377c91961efa4da9c23688de3172493ba31513b1e1e0aeff122822"))
+//            (44585, uint256S("0x00000007ddd54c42f44d7b236811793743647e677042a6b332a6c4fb0c6198c5")),
+//            1541482774,     // * UNIX timestamp of last checkpoint block
+//            115266,  // * total number of transactions between genesis and last checkpoint
+//                   //   (the tx=... number in the SetBestChain debug.log lines)
+//            1.0    // * estimated number of transactions per day after checkpoint
+//                   //   total number of tx / (checkpoint block height / (24 * 24))
+                (0, consensus.hashGenesisBlock),
+                0,
+                0,
+                0
         };
 
         // Founders reward script expects a vector of 2-of-3 multisig addresses
