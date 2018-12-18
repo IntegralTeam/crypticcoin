@@ -26,12 +26,13 @@ static const char DB_SAPLING_NULLIFIER = 'S';
 static const char DB_COINS = 'c';
 static const char DB_BLOCK_FILES = 'f';
 static const char DB_TXINDEX = 't';
+static const char DB_BLOCK_INDEX = 'b';
+
 static const char DB_ADDRESSINDEX = 'd';
 static const char DB_ADDRESSUNSPENTINDEX = 'u';
-static const char DB_TIMESTAMPINDEX = 'S';
-static const char DB_BLOCKHASHINDEX = 'z';
+static const char DB_TIMESTAMPINDEX = 'T';
+static const char DB_BLOCKHASHINDEX = 'h';
 static const char DB_SPENTINDEX = 'p';
-static const char DB_BLOCK_INDEX = 'b';
 
 static const char DB_BEST_BLOCK = 'B';
 static const char DB_BEST_SPROUT_ANCHOR = 'a';
