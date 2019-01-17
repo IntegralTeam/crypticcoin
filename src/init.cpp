@@ -405,6 +405,7 @@ std::string HelpMessage(HelpMessageMode mode)
     strUsage += HelpMessageOpt("-onion=<ip:port>", strprintf(_("Use separate SOCKS5 proxy to reach peers via Tor hidden services (default: %s)"), "-proxy"));
     strUsage += HelpMessageOpt("-tor_exe_path=<path>", strprintf(_("[if -listenonion] Path to tor executable. Daemon will execute it (default: '%s')"), ""));
     strUsage += HelpMessageOpt("-tor_obfs4_exe_path=<path>", strprintf(_("[if -tor_generate_config] Path to obfs4 executable. It'll be added in tor config (default: '%s')"), ""));
+    strUsage += HelpMessageOpt("-add_obfs4_bridge=obfs4 <addr> <fingerprint> [params]", strprintf(_("[if -tor_obfs4_exe_path] Config string for Tor obfuscated bridge. You SHOULD add one or more bridge if you want obfs4 works properly (see https://www.torproject.org/docs/bridges.html.en#FindingMore). It'll be added in tor config (default: '%s')"), ""));
     strUsage += HelpMessageOpt("-tor_generate_config", strprintf(_("[if -tor_exe_path] Regenerate tor config file (even if already exists) (default: '%s')"), "1"));
     strUsage += HelpMessageOpt("-onlynet=<net>", _("Only connect to nodes in network <net> (ipv4, ipv6 or onion)"));
     strUsage += HelpMessageOpt("-permitbaremultisig", strprintf(_("Relay non-P2SH multisig (default: %u)"), 1));
@@ -437,7 +438,7 @@ std::string HelpMessage(HelpMessageMode mode)
     strUsage += HelpMessageOpt("-sendfreetransactions", strprintf(_("Send transactions as zero-fee transactions if possible (default: %u)"), 0));
     strUsage += HelpMessageOpt("-spendzeroconfchange", strprintf(_("Spend unconfirmed change when sending transactions (default: %u)"), 1));
     strUsage += HelpMessageOpt("-txconfirmtarget=<n>", strprintf(_("If paytxfee is not set, include enough fee so transactions begin confirmation on average within n blocks (default: %u)"), DEFAULT_TX_CONFIRM_TARGET));
-    strUsage += HelpMessageOpt("-txexpirydelta", strprintf(_("Set the number of blocks after which a transaction that has not been mined will become invalid (default: %u)"), DEFAULT_TX_EXPIRY_DELTA));
+    strUsage += HelpMessageOpt("-txexpirydelta", strprintf(_("Set the number of blocks after which a transaction that has not been mined will become invalid (min: %u, default: %u)"), TX_EXPIRING_SOON_THRESHOLD + 1, DEFAULT_TX_EXPIRY_DELTA));
     strUsage += HelpMessageOpt("-maxtxfee=<amt>", strprintf(_("Maximum total fees (in %s) to use in a single wallet transaction; setting this too low may abort large transactions (default: %s)"),
         CURRENCY_UNIT, FormatMoney(maxTxFee)));
     strUsage += HelpMessageOpt("-upgradewallet", _("Upgrade wallet to latest format") + " " + _("on startup"));
@@ -737,21 +738,27 @@ static void ZC_LoadParams(
     elapsed = float(tv_end.tv_sec-tv_start.tv_sec) + (tv_end.tv_usec-tv_start.tv_usec)/float(1000000);
     LogPrintf("Loaded verifying key in %fs seconds.\n", elapsed);
 
-    std::string sapling_spend_str = sapling_spend.string();
-    std::string sapling_output_str = sapling_output.string();
-    std::string sprout_groth16_str = sprout_groth16.string();
+    static_assert(
+        sizeof(boost::filesystem::path::value_type) == sizeof(codeunit),
+        "librustzcash not configured correctly");
+    auto sapling_spend_str = sapling_spend.native();
+    auto sapling_output_str = sapling_output.native();
+    auto sprout_groth16_str = sprout_groth16.native();
 
-    LogPrintf("Loading Sapling (Spend) parameters from %s\n", sapling_spend_str.c_str());
-    LogPrintf("Loading Sapling (Output) parameters from %s\n", sapling_output_str.c_str());
-    LogPrintf("Loading Sapling (Sprout Groth16) parameters from %s\n", sprout_groth16_str.c_str());
+    LogPrintf("Loading Sapling (Spend) parameters from %s\n", sapling_spend.string().c_str());
+    LogPrintf("Loading Sapling (Output) parameters from %s\n", sapling_output.string().c_str());
+    LogPrintf("Loading Sapling (Sprout Groth16) parameters from %s\n", sprout_groth16.string().c_str());
     gettimeofday(&tv_start, 0);
 
     librustzcash_init_zksnark_params(
-        sapling_spend_str.c_str(),
+        reinterpret_cast<const codeunit*>(sapling_spend_str.c_str()),
+        sapling_spend_str.length(),
         "8270785a1a0d0bc77196f000ee6d221c9c9894f55307bd9357c3f0105d31ca63991ab91324160d8f53e2bbd3c2633a6eb8bdf5205d822e7f3f73edac51b2b70c",
-        sapling_output_str.c_str(),
+        reinterpret_cast<const codeunit*>(sapling_output_str.c_str()),
+        sapling_output_str.length(),
         "657e3d38dbb5cb5e7dd2970e8b03d69b4787dd907285b5a7f0790dcc8072f60bf593b32cc2d1c030e00ff5ae64bf84c5c3beb84ddc841d48264b4a171744d028",
-        sprout_groth16_str.c_str(),
+        reinterpret_cast<const codeunit*>(sprout_groth16_str.c_str()),
+        sprout_groth16_str.length(),
         "e9b238411bd6c0ec4791e9d04245ec350c9c5744f5610dfcce4365d5ca49dfefd5054e371842b3f88fa1b9d7e8e075249b3ebabd167fa8b0f3161292d36c180a"
     );
 
@@ -936,6 +943,12 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
                 tor::TorSettings tor_cfg;
                 tor_cfg.tor_exe_path = {GetArg("-tor_exe_path", "")};
                 tor_cfg.tor_obfs4_exe_path = {GetArg("-tor_obfs4_exe_path", "")};
+                tor_cfg.tor_bridges = mapMultiArgs["-add_obfs4_bridge"];
+                if (tor_cfg.tor_bridges.empty() && !tor_cfg.tor_obfs4_exe_path.empty() && !tor_cfg.tor_exe_path.empty()) {
+                    auto error_log = "You SHOULD add one or more bridge by '-add_obfs4_bridge=obfs4 <addr> <fingerprint> [params]' if you want obfs4 works properly (see https://www.torproject.org/docs/bridges.html.en#FindingMore)\n";
+                    LogPrint("tor", error_log);
+                    return InitError(error_log);
+                }
                 tor_cfg.tor_generate_config = GetBoolArg("-tor_generate_config", true);
                 tor_cfg.public_port = (unsigned short)(GetArg("-tor_service_port", Params().GetDefaultTorServicePort()));
                 tor_cfg.hidden_port = GetListenPort();
@@ -1155,6 +1168,10 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
     }
     nTxConfirmTarget = GetArg("-txconfirmtarget", DEFAULT_TX_CONFIRM_TARGET);
     expiryDelta = GetArg("-txexpirydelta", DEFAULT_TX_EXPIRY_DELTA);
+    uint32_t minExpiryDelta = TX_EXPIRING_SOON_THRESHOLD + 1;
+    if (expiryDelta < minExpiryDelta) {
+        return InitError(strprintf(_("Invalid value for -expiryDelta='%u' (must be least %u)"), expiryDelta, minExpiryDelta));
+    }
     bSpendZeroConfChange = GetBoolArg("-spendzeroconfchange", true);
     fSendFreeTransactions = GetBoolArg("-sendfreetransactions", false);
 
