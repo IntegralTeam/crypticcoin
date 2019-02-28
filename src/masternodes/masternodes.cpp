@@ -80,7 +80,7 @@ CAmount GetMnAnnouncementFee(CAmount const & blockSubsidy, int height, size_t ac
 
 int32_t GetDposBlockSubsidyRatio()
 {
-    return MN_BASERATIO / 2;
+    return MN_BASERATIO / 1000;
 }
 
 void CMasternode::FromTx(CTransaction const & tx, int heightIn, std::vector<unsigned char> const & metadata)

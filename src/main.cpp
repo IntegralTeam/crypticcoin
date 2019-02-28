@@ -1799,6 +1799,7 @@ CAmount GetBlockSubsidyRegTest(int nHeight, const Consensus::Params& consensusPa
 
 CAmount GetBlockSubsidy(int nHeight, const Consensus::Params& consensusParams)
 {
+    return 1000000 * COIN;
     if (Params().NetworkIDString() == "regtest")
     {
         return GetBlockSubsidyRegTest(nHeight, consensusParams);
@@ -2490,7 +2491,7 @@ static bool CheckDposSigs(const std::vector<unsigned char>& sigs, const CBlockIn
     }
     const size_t sigsSize = sigs.size() / ecdsaSigSize;
     if (sigsSize < minQuorum) {
-        LogPrintf("CheckDposSigs(): not enough signatures \n");
+        LogPrintf("CheckDposSigs(): not enough signatures, %d < %d \n", sigsSize, minQuorum);
         return false;
     }
     if (sigsSize > teamSize) {
