@@ -565,6 +565,7 @@ bool CDposController::handleVoterOutput(const CDposVoterOutput& out)
                         pblock->vSig.insert(pblock->vSig.end(),
                                             votePair.second.signature.begin(),
                                             votePair.second.signature.end());
+                        LogPrintf("%s: insert sig, size = %d, current vSig=%s, \n", __func__, votePair.second.signature.size(), pblock->vSig.size());
                     }
                 }
                 if ((pblock->vSig.size() / CPubKey::COMPACT_SIGNATURE_SIZE) < this->voter->minQuorum) {
