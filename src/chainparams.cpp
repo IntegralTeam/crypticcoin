@@ -93,7 +93,7 @@ public:
         strNetworkID = "main";
         strCurrencyUnits = "CRYP";
         bip44CoinType = 133; // As registered in https://github.com/satoshilabs/slips/blob/master/slip-0044.md
-        consensus.fCoinbaseMustBeProtected = false;
+        consensus.fCoinbaseMustBeProtected = true;
         consensus.nSubsidySlowStartInterval = 20000;
         consensus.nSubsidyHalvingInterval = 10483200;
         consensus.nMajorityEnforceBlockUpgrade = 750;
