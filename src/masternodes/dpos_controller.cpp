@@ -224,7 +224,7 @@ void CDposController::loadDB()
             roundVote.voter = mnId.get();
             roundVote.nRound = vote.nRound;
             roundVote.choice = vote.choice;
-            if (txVote.tip != tip)
+            if (roundVote.tip != tip)
                 throw std::runtime_error("dPoS database is corrupted (reading round votes)! Please restart with -reindex to recover.");
 
             this->receivedRoundVotes.emplace(vote.GetHash(), vote);
