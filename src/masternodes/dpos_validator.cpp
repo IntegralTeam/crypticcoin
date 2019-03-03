@@ -49,7 +49,7 @@ bool CDposController::Validator::validateTx(const CTransaction& tx)
 bool CDposController::Validator::validateTxs(const std::map<TxIdSorted, CTransaction>& txMap)
 {
     AssertLockHeld(cs_main);
-    //ScopedNoLogging noLogging;
+    ScopedNoLogging noLogging;
 
     // create dummy block
     CBlock block;
@@ -97,14 +97,14 @@ bool CDposController::Validator::validateTxs(const std::map<TxIdSorted, CTransac
     //return TestBlockValidity(state, block, chainActive.Tip(), false, false, dvr);
 }
 
-bool CDposController::Validator::validateBlock(const CBlock& block, const std::map<TxIdSorted, CTransaction>& instantTxsTemplate, bool fJustCheckPoW)
+bool CDposController::Validator::validateBlock(const CBlock& block, const std::map<TxIdSorted, CTransaction>& instantTxsExpected, bool fJustCheckPoW)
 {
     AssertLockHeld(cs_main);
     ScopedNoLogging noLogging;
     CValidationState state;
 
     if (fJustCheckPoW) {
-        assert(instantTxsTemplate.empty());
+        assert(instantTxsExpected.empty());
         if (!CheckBlockHeader(block, state, true))
             return false;
         return ContextualCheckBlockHeader(block, state, chainActive.Tip());
@@ -124,13 +124,13 @@ bool CDposController::Validator::validateBlock(const CBlock& block, const std::m
     if (instSectionEnd == 0) { // didn't meet !tx.fInstant => all the txs are instant
         instSectionEnd = block.vtx.size();
     }
-    if (!instantTxsTemplate.empty()) {
+    if (!instantTxsExpected.empty()) {
         // check size
         const size_t instTxsNum = instSectionEnd - instSectionStart;
-        if (instTxsNum != instantTxsTemplate.size())
+        if (instTxsNum != instantTxsExpected.size())
             return false;
         // compare txs
-        auto matchInstTx_it = instantTxsTemplate.begin();
+        auto matchInstTx_it = instantTxsExpected.begin();
         for (size_t i = instSectionStart; i < instSectionEnd; i++) {
             if (block.vtx[i] != matchInstTx_it->second)
                 return false;
