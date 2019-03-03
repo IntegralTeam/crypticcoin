@@ -30,7 +30,7 @@ class dPoS_PositiveTest(dPoS_BaseTest):
         for n in range(self.num_nodes):
             blockCount = self.nodes[n].getblockcount()
             self.nodes[n].generate(1)
-            time.sleep(1)
+            time.sleep(2)
             self.sync_all()
             blockCount = blockCount + 1
             self.check_nodes_block_count(blockCount)
@@ -106,12 +106,16 @@ class dPoS_PositiveTest(dPoS_BaseTest):
         self.stop_nodes()
         self.start_masternodes()
         self.connect_nodes()
+        self.sync_all()
         vblocks_after = [node.listdposviceblocks() for node in self.nodes]
         rdvotes_after = [node.listdposroundvotes() for node in self.nodes]
         txvotes_after = [node.listdpostxvotes() for node in self.nodes]
-        print(vblocks_after)
-        print(rdvotes_after)
-        print(txvotes_after)
+        vblocks_after_len = [len(node.listdposviceblocks()) for node in self.nodes]
+        rdvotes_after_len = [len(node.listdposroundvotes()) for node in self.nodes]
+        txvotes_after_len = [len(node.listdpostxvotes()) for node in self.nodes]
+        print(vblocks_after_len)
+        print(rdvotes_after_len)
+        print(txvotes_after_len)
 #        assert_equal(vblocks_before, vblocks_after)
 #        assert_equal(rdvotes_before, rdvotes_after)
 #        assert_equal(txvotes_before, txvotes_after)
@@ -131,6 +135,7 @@ class dPoS_PositiveTest(dPoS_BaseTest):
         print(self.operators)
         self.start_masternodes([['-reindex']] * self.num_nodes)
         self.connect_nodes()
+        self.sync_all()
         [assert_equal(len(node.listdposviceblocks()), 0) for node in self.nodes]
         [assert_equal(len(node.listdposroundvotes()), 0) for node in self.nodes]
         [assert_equal(len(node.listdpostxvotes()), 0) for node in self.nodes]
@@ -173,31 +178,32 @@ class dPoS_PositiveTest(dPoS_BaseTest):
         super(dPoS_PositiveTest, self).run_test()
         print("Creating masternodes")
         mns = self.create_masternodes([0, 3, 4, 7, 8, 9])
+        time.sleep(3)
         initialBlockCount = 200 + 10 * self.num_nodes + self.num_nodes + 1
-        self.check_balances(INITIAL_BALANCES)
+#        self.check_balances(INITIAL_BALANCES)
         self.check_nodes_block_count(initialBlockCount + self.num_nodes * 0)
         print("Checking block generation with no txs")
         self.check_no_txs()
-        self.check_balances(NOTXS_BALANCES)
+ #       self.check_balances(NOTXS_BALANCES)
         self.check_nodes_block_count(initialBlockCount + self.num_nodes * 1)
-        print("Checking block generation with PoW txs")
-        self.check_pow_txs()
+#        print("Checking block generation with PoW txs")
+#        self.check_pow_txs()
 #        self.check_balances(POWTXS_BALANCES)
 #        self.check_nodes_block_count(initialBlockCount + self.num_nodes * 2)
 #        print("Checking block generation with dPoS txs")
 #        self.check_dpos_txs()
 #        self.check_balances(DPOSTXS_BALANCES)
 #        self.check_nodes_block_count(initialBlockCount + self.num_nodes * 3)
-#        print("Checking block generation with PoW and dPoS txs")
-#        self.check_mix_txs()
+        print("Checking block generation with PoW and dPoS txs")
+        self.check_mix_txs()
 #        self.check_balances(MIXTXS_BALANCES)
 #        self.check_nodes_block_count(initialBlockCount + self.num_nodes * 4)
         print("Checking restart")
         self.check_restart()
 #        self.check_balances(MIXTXS_BALANCES)
 #        self.check_nodes_block_count(initialBlockCount + self.num_nodes * 4)
-        print("Checking reindex")
-        self.check_reindex()
+#        print("Checking reindex")
+#        self.check_reindex()
 #        self.check_balances(MIXTXS_BALANCES)
 #        self.check_nodes_block_count(initialBlockCount + self.num_nodes * 4)
 

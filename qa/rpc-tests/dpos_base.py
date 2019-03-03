@@ -17,6 +17,7 @@ from test_framework.util import \
     initialize_chain, \
     connect_nodes_bi, \
     wait_bitcoinds
+import time
 
 
 INITIAL_BLOCK_COUNT = 200
@@ -65,7 +66,7 @@ class dPoS_BaseTest(BitcoinTestFramework):
             args[i] = args[i][:]
             args[i] += [
                 '-nuparams=5ba81b19:201', # Overwinter
-                '-nuparams=76b809bb:201'  # Suppling
+                '-nuparams=76b809bb:201'  # Sappling
             ]
         self.nodes = start_nodes(self.num_nodes, self.options.tmpdir, args);
 
@@ -125,9 +126,22 @@ class dPoS_BaseTest(BitcoinTestFramework):
             connect_nodes_bi(self.nodes, 7, 8)
             connect_nodes_bi(self.nodes, 8, 9)
             connect_nodes_bi(self.nodes, 9, 0)
+        elif self.options.node_garaph_layout == "split": # 9th is disconnected
+            print("                     *-*-*-*")
+            print("Check graph layout *<        * (9th is disconnected)")
+            print("                     *-*-*-*")
+            connect_nodes_bi(self.nodes, 0, 1)
+            connect_nodes_bi(self.nodes, 1, 2)
+            connect_nodes_bi(self.nodes, 2, 3)
+            connect_nodes_bi(self.nodes, 3, 4)
+            connect_nodes_bi(self.nodes, 4, 5)
+            connect_nodes_bi(self.nodes, 5, 6)
+            connect_nodes_bi(self.nodes, 6, 7)
+            connect_nodes_bi(self.nodes, 7, 8)
+            #connect_nodes_bi(self.nodes, 8, 9)
+            #connect_nodes_bi(self.nodes, 9, 0)
         else:
             raise ValueError("Invalid argument --node_garaph_layout")
-        self.sync_all()
 
     def create_masternodes(self, indexes={0,1,2,3,4,5}):
         # Announce nodes
@@ -201,6 +215,7 @@ class dPoS_BaseTest(BitcoinTestFramework):
         assert_equal(self.num_nodes, 10)
         self.start_masternodes()
         self.connect_nodes()
+        self.sync_all()
         assert_equal(len(self.nodes), self.num_nodes)
         for node in self.nodes:
             assert_equal(node.getblockcount(), INITIAL_BLOCK_COUNT)
