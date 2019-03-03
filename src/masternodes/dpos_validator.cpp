@@ -60,6 +60,7 @@ bool CDposController::Validator::validateTxs(const std::map<TxIdSorted, CTransac
     txNew.vin[0].scriptSig = CScript() << (chainActive.Height() + 1) << OP_0;
     txNew.vout.resize(1);
     txNew.vout[0].scriptPubKey = CScript() << OP_RETURN;
+    txNew.vout[0].nValue = GetBlockSubsidy(chainActive.Height(), Params().GetConsensus());
     txNew.nExpiryHeight = 0;
     block.vtx.emplace_back(txNew);
 
