@@ -125,6 +125,11 @@ void CDposController::runEventLoop()
     CDposController* self{getController()};
     const Consensus::Params& params{Params().GetConsensus()};
 
+    { // txs aren't written into DB, so we need to request them from other peers
+        LOCK(cs_main);
+        self->handleVoterOutput(self->voter->requestMissingTxs());
+    }
+
     while (true) {
         boost::this_thread::interruption_point();
 
@@ -165,11 +170,6 @@ void CDposController::runEventLoop()
 
                 std::vector<CInv> txReqsToSend;
                 {
-                    LOCK(cs_main);
-                    if (self->initialVotesDownload) { // txs aren't written into DB, so we need to request them from other peers
-                        self->handleVoterOutput(self->voter->requestMissingTxs());
-                    }
-
                     txReqsToSend.insert(txReqsToSend.end(), self->vTxReqs.begin(), self->vTxReqs.end());
                 }
                 for (auto&& node : nodes) {
