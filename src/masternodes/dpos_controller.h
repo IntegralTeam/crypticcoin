@@ -9,6 +9,7 @@
 #include "../primitives/block.h"
 #include <map>
 #include <memory>
+#include <protocol.h>
 
 class CKeyID;
 class CValidationInterface;
@@ -43,15 +44,16 @@ public:
     bool findViceBlock(const BlockHash& hash, CBlock* block = nullptr) const;
     bool findRoundVote(const BlockHash& hash, CRoundVote_p2p* vote = nullptr) const;
     bool findTxVote(const BlockHash& hash, CTxVote_p2p* vote = nullptr) const;
+    bool findTx(const TxId& txid, CTransaction* tx = nullptr) const;
 
     std::vector<CBlock> listViceBlocks() const;
     std::vector<CRoundVote_p2p> listRoundVotes() const;
     std::vector<CTxVote_p2p> listTxVotes() const;
 
     std::vector<CTransaction> listCommittedTxs() const;
-    bool isCommittedTx(const CTransaction& tx) const;
-    bool isTxApprovedByMe(const CTransaction& tx) const;
-    CTxVotingDistribution calcTxVotingStats(TxId txid) const;
+    bool isCommittedTx(const TxId& txid) const;
+    bool isTxApprovedByMe(const TxId& txid) const;
+    CTxVotingDistribution calcTxVotingStats(const TxId& txid) const;
 
 private:
     static boost::optional<CMasternode::ID> findMyMasternodeId();
@@ -75,9 +77,10 @@ private:
     std::vector<TxId> getTxsFilter() const;
 
 private:
-    bool ready = false;
+    bool initialVotesDownload = true;
     std::shared_ptr<CDposVoter> voter;
     std::shared_ptr<Validator> validator;
+    std::set<CInv> vTxReqs;
     std::map<uint256, CTxVote_p2p> receivedTxVotes;
     std::map<uint256, CRoundVote_p2p> receivedRoundVotes;
 };

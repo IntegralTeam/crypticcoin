@@ -107,9 +107,17 @@ void CDposVoter::updateTip(BlockHash tip)
 {
     LogPrintf("%s: Change current tip from %s to %s\n", __func__, this->tip.GetHex(), tip.GetHex());
 
-    // tip is changed not first time. TODO filter only after N blocks. store txs to clear here
-    if (this->tip != BlockHash{} && this->tip != tip)
+    // tip is changed not first time
+    if (this->tip != BlockHash{} && this->tip != tip) {
         filterFinishedTxs(this->txs, 0);
+        // filter invalid txs
+        for (auto it = this->txs.begin(); it != this->txs.end();) {
+            if (!world.validateTx(it->second))
+                it = this->txs.erase(it);
+            else
+                it++;
+        }
+    }
 
     this->tip = tip;
 }
@@ -119,7 +127,7 @@ CDposVoter::Output CDposVoter::applyViceBlock(const CBlock& viceBlock)
     if (viceBlock.nRound <= 0 || !viceBlock.vSig.empty() || !viceBlock.hashReserved1.IsNull() || !viceBlock.hashReserved2.IsNull()) {
         return misbehavingErr("vice-block is malformed");
     }
-    if (!world.validateBlock(viceBlock, {}, false)) {
+    if (!world.validateBlock(viceBlock, {}, true)) {
         return misbehavingErr("vice-block validation failed");
     }
 
@@ -147,11 +155,18 @@ CDposVoter::Output CDposVoter::applyTx(const CTransaction& tx)
     assert(tx.fInstant);
 
     TxId txid = tx.GetHash();
-    std::map<TxIdSorted, CTransaction> tx_m{{UintToArith256(txid), tx}};
 
-    if (!world.validateTxs(tx_m)) {
+    if (!world.validateTx(tx)) {
         LogPrintf("%s: Received invalid tx %s \n", __func__, txid.GetHex());
-        return {};
+        // clear tx and votes for this tx
+        txs.erase(txid);
+        if (v.count(tip) != 0) {
+            for (auto&& txRoundVoting_p : v[tip].txVotes) {
+                txRoundVoting_p.second.erase(txid);
+            }
+        }
+
+        return misbehavingErr("invalid tx");
     }
     LogPrintf("%s: Received tx %s \n", __func__, txid.GetHex());
 
@@ -275,7 +290,7 @@ CDposVoter::Output CDposVoter::applyRoundVote(const CRoundVote& vote)
     }
     out += doRoundVoting();
     if (vote.choice.decision == CVoteChoice::Decision::YES) {
-        out += tryToSubmitBlock(vote.choice.subject);
+        out += tryToSubmitBlock(vote.choice.subject, vote.nRound);
     }
 
     return out;
@@ -289,6 +304,19 @@ void CDposVoter::pruneTxVote(const CTxVote& vote)
             pair.second.erase(vote_it);
         }
     }
+}
+
+CDposVoter::Output CDposVoter::requestMissingTxs() {
+    Output out{};
+    LogPrintf("%s \n", __func__);
+    for (auto&& txsRoundVoting_p : v[tip].txVotes) {
+        for (const auto& txVoting_p : txsRoundVoting_p.second) {
+            if (txs.count(txVoting_p.first) == 0) {
+                out.vTxReqs.push_back(txVoting_p.first);
+            }
+        }
+    }
+    return out;
 }
 
 CDposVoter::Output CDposVoter::doRoundVoting()
@@ -354,7 +382,7 @@ CDposVoter::Output CDposVoter::doRoundVoting()
         }
 
         const CBlock& viceBlock = v[tip].viceBlocks[viceBlockId];
-        if (viceBlock.nRound == nRound && world.validateBlock(viceBlock, committedTxs, true)) {
+        if (viceBlock.nRound == nRound && world.validateBlock(viceBlock, committedTxs, false)) {
             viceBlockToVote = {viceBlockId};
             break;
         }
@@ -406,7 +434,7 @@ CDposVoter::Output CDposVoter::voteForTx(const CTransaction& tx)
         return out;
     }
 
-    myTxs.txs.emplace(UintToArith256(txid), tx);
+    myTxs.txs.emplace(tx.GetDposSortingHash(), tx);
     if (!world.validateTxs(myTxs.txs)) { // check against my list
         decision = CVoteChoice::Decision::NO;
     } else {
@@ -414,7 +442,7 @@ CDposVoter::Output CDposVoter::voteForTx(const CTransaction& tx)
         // but checking against committed txs will speed up the consensus.
         // committed list may be not full, which is fine
         auto committedTxs = listCommittedTxs();
-        committedTxs.emplace(UintToArith256(txid), tx);
+        committedTxs.emplace(tx.GetDposSortingHash(), tx);
         if (!world.validateTxs(committedTxs)) {
             decision = CVoteChoice::Decision::NO;
         }
@@ -439,24 +467,17 @@ CDposVoter::Output CDposVoter::voteForTx(const CTransaction& tx)
     return out;
 }
 
-CDposVoter::Output CDposVoter::tryToSubmitBlock(BlockHash viceBlockId)
+CDposVoter::Output CDposVoter::tryToSubmitBlock(BlockHash viceBlockId, Round nRound)
 {
     Output out{};
-    const Round nCurrentRound = getCurrentRound();
-    auto stats = calcRoundVotingStats(nCurrentRound);
+    auto stats = calcRoundVotingStats(nRound);
 
     if (stats.pro[viceBlockId] >= minQuorum) {
         if (v[tip].viceBlocks.count(viceBlockId) == 0) {
             return out;
         }
         const auto& viceBlock = v[tip].viceBlocks[viceBlockId];
-        if (viceBlock.nRound != nCurrentRound) {
-            return out;
-        }
-        // committed list may be not full, which is fine
-        if (!world.validateBlock(viceBlock, listCommittedTxs(), true)) {
-            return out;
-        }
+        assert(viceBlock.nRound == nRound);
 
         LogPrintf("%s: Submit block, num of votes = %d, minQuorum = %d \n",
                   __func__,
@@ -464,10 +485,12 @@ CDposVoter::Output CDposVoter::tryToSubmitBlock(BlockHash viceBlockId)
                   minQuorum);
         CBlockToSubmit blockToSubmit;
         blockToSubmit.block = viceBlock;
-        const auto& approvedBy_m = v[tip].roundVotes[nCurrentRound];
-        // Retrieve all keys
-        boost::copy(approvedBy_m | boost::adaptors::map_keys,
-                    std::back_inserter(blockToSubmit.vApprovedBy)); // TODO filter pass votes
+
+        const auto& votedBy_m = v[tip].roundVotes[nRound];
+        for (const auto& vote_p : votedBy_m) {
+            if (vote_p.second.choice.decision == CVoteChoice::Decision::YES)
+                blockToSubmit.vApprovedBy.push_back(vote_p.second.voter);
+        }
 
         out.blockToSubmit = {blockToSubmit};
     }
@@ -540,27 +563,33 @@ std::map<TxIdSorted, CTransaction> CDposVoter::listCommittedTxs() const
         const auto stats = calcTxVotingStats(tx_p.first, nRound);
 
         if (stats.pro >= minQuorum) {
-            res.emplace(UintToArith256(tx_p.first), tx_p.second);
+            res.emplace(tx_p.second.GetDposSortingHash(), tx_p.second);
         }
     }
 
     return res;
 }
 
-bool CDposVoter::isCommittedTx(const CTransaction& tx) const
+bool CDposVoter::isCommittedTx(const TxId& txid) const
 {
     const Round nRound = getCurrentRound();
-    const TxId txid = tx.GetHash();
     const auto stats = calcTxVotingStats(txid, nRound);
 
     return stats.pro >= minQuorum;
 }
 
-bool CDposVoter::isTxApprovedByMe(const CTransaction& tx) const
+bool CDposVoter::isTxApprovedByMe(const TxId& txid) const
 {
-    const auto myTxs = listApprovedByMe_txs();
-    const TxId txid = tx.GetHash();
-    return myTxs.txs.count(UintToArith256(txid)) != 0 || myTxs.missing.count(txid) != 0;
+    for (auto&& txsRoundVoting_p : v[tip].txVotes) {
+        if (txsRoundVoting_p.second.count(txid) == 0)
+            return false;
+        if (txsRoundVoting_p.second[txid].count(me) == 0)
+            return false;
+        const auto& myVote = txsRoundVoting_p.second[txid][me];
+        if (myVote.choice.decision == CVoteChoice::Decision::YES)
+            return true;
+    }
+    return false;
 }
 
 CDposVoter::Output CDposVoter::misbehavingErr(const std::string& msg) const
@@ -627,7 +656,7 @@ CDposVoter::ApprovedByMeTxsList CDposVoter::listApprovedByMe_txs() const
 
                 const CTransaction tx = txs[txid];
 
-                res.txs.emplace(UintToArith256(txid), tx);
+                res.txs.emplace(tx.GetDposSortingHash(), tx);
             }
         }
     }
@@ -714,7 +743,7 @@ bool CDposVoter::atLeastOneViceBlockIsValid(Round nRound) const
 
     for (const auto& viceBlock_p : v[tip].viceBlocks) {
         const CBlock& viceBlock = viceBlock_p.second;
-        if (viceBlock.nRound == nRound && world.validateBlock(viceBlock, committedTxs, true)) {
+        if (viceBlock.nRound == nRound && world.validateBlock(viceBlock, committedTxs, false)) {
             return true;
         }
     }
@@ -727,7 +756,7 @@ bool CDposVoter::txHasAnyVote(TxId txid) const
         const auto& txVoting_it = txsRoundVoting_p.second.find(txid);
         if (txVoting_it == txsRoundVoting_p.second.end()) // voting not found
             continue;
-        if (txVoting_it->second.size() > 0) // voting isn't empty
+        if (!txVoting_it->second.empty())
             return true;
     }
     return false;
@@ -772,7 +801,7 @@ bool CDposVoter::checkTxNotCommittable(const CTxVotingDistribution& stats) const
 void CDposVoter::filterFinishedTxs(std::map<TxIdSorted, CTransaction>& txs_f, Round nRound) const
 {
     for (auto it = txs_f.begin(); it != txs_f.end();) {
-        const TxId txid = ArithToUint256(it->first);
+        const TxId txid = it->second.GetHash();
         auto stats = calcTxVotingStats(txid, nRound);
         if (nRound <= 0)
             stats.abstinendi = 0;
