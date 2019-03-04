@@ -171,7 +171,6 @@ void CDposController::runEventLoop()
                     }
 
                     txReqsToSend.insert(txReqsToSend.end(), self->vTxReqs.begin(), self->vTxReqs.end());
-                    self->vTxReqs.clear();
                 }
                 for (auto&& node : nodes) {
                     node->PushMessage("getvblocks", tipHash);
@@ -322,6 +321,7 @@ void CDposController::proceedViceBlock(const CBlock& viceBlock)
 void CDposController::proceedTransaction(const CTransaction& tx)
 {
     LOCK(cs_main);
+    vTxReqs.erase(CInv{MSG_TX, tx.GetHash()});
     handleVoterOutput(voter->applyTx(tx));
 }
 
