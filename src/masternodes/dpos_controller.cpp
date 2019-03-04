@@ -159,7 +159,7 @@ void CDposController::runEventLoop()
                 syncPeriod = 1000;
 
             const auto nodes = getNodes();
-            if (!nodes.empty() && !IsInitialBlockDownload() && (now - lastSyncTime) > syncPeriod) {
+            if (!nodes.empty()/* && !IsInitialBlockDownload()*/ && (now - lastSyncTime) > syncPeriod) {
                 lastSyncTime = now;
                 self->removeOldVotes();
 
